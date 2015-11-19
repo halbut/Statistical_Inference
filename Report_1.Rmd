@@ -1,0 +1,94 @@
+---
+output: html_document
+---
+Simulation Project
+==================
+
+Alper Halbutogullari, November 10, 2015
+
+## Overview
+
+In this project we will investigate the exponential distribution in R and compare it with the CTL (Central Limit Theorem). The exponential distribution can be simulated in R with `rexp(n, lambda)` where `lambda` $\lambda$ is the rate parameter. The mean of exponential distribution is $1/\lambda$ and the standard deviation is also $1/\lambda$. For this simulation, we set $\lambda=0.2$ for all of the simulations. In this simulation, we will investigate the distribution of averages of 40 exponentials.
+
+Our goals are to:
+1. compare the sample mean with the theoretical mean of the distribution.
+2. compare the sample variance with the theoretical variance of the distribution
+3. show that the distribution is approximately normal.
+
+## Simulations
+
+```{r echo=TRUE, eval=TRUE, fig.width=10, fig.height=3}
+# set the seed for reproducibility
+set.seed(2015)
+
+# rate parameter
+lambda <- 0.2
+
+# 1000 simulations with 40 samples each
+sample_size <- 40
+number_of_simulations <- 1000
+
+sampled_exponential_means <- replicate(number_of_simulations, mean(rexp(sample_size, lambda)))
+```
+
+## Analysis
+
+### Sample mean vs theoretical mean
+
+```{r echo=TRUE, eval=TRUE}
+theoretical_mean <- 1/lambda
+sample_mean  <- mean(sampled_exponential_means)
+paste("theoretical_mean=",theoretical_mean,"   sample_mean=",sample_mean)
+```
+
+As expected they are in line. Let's see the theoretical_mean over the distribution.
+
+```{r echo=TRUE, eval=TRUE, fig.width=10, fig.height=3}
+hist(sampled_exponential_means,  
+    freq=TRUE, 
+    breaks=50,
+    xlab="Sample Means from 1000 Simulations")
+abline(v=5, col="red", lwd=4)
+```
+
+Figure 1: Histogram of sampled exponent means
+
+Red line shows the theoretical mean, which is in line with the expected value.
+
+### Sample variance vs theoretical variance
+
+```{r echo=TRUE, eval=TRUE}
+theoretical_variance <- (1/lambda)^2 / 40
+sample_variance <- var(sampled_exponential_means)
+paste("theoretical_variance=",theoretical_variance,"   sample_variance=",sample_variance)
+```
+
+As expected the results are in the same ballpark.
+
+### Sample distribution vs normal distribution
+
+```{r echo=TRUE, eval=TRUE}
+qqnorm(sampled_exponential_means, ylab = "Sample Means of Exponentials")
+qqline(sampled_exponential_means, col = 2)
+```
+
+As can be seen above, the distribution is approximately normal.
+
+```{r warning=FALSE, echo=FALSE, eval=TRUE, fig.height=4}
+# plot the means
+library(ggplot2)
+ggplot(data = data.frame(sampled_exponential_means), aes(sampled_exponential_means)) + 
+  geom_histogram(binwidth=0.1, aes(y=..density..), alpha=lambda) + 
+  stat_function(fun = dnorm, arg = list(mean = theoretical_mean, sd = sqrt(theoretical_variance)), colour = "red", size=1) + 
+  geom_vline(xintercept = theoretical_mean, size=1, colour="blue") + 
+  geom_density(colour="blue", size=1) +
+  geom_vline(xintercept = sample_mean, size=1, colour="red") + 
+  scale_x_continuous(breaks=seq(sample_mean-3,sample_mean+3,1), limits=c(sample_mean-3, sample_mean+3)) +
+  xlab("Means of exponentials")  +
+  labs(title=expression("Sample distribution vs normal distribution"))
+```
+
+
+## Conclusion
+
+The sampled_exponential_means distribution is very close to the theoretical normal distribution (with the theoretical mean and variance).

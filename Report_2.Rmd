@@ -1,0 +1,166 @@
+---
+output: pdf_document
+---
+Analysis Project
+================
+
+Alper Halbutogullari, November 10, 2015
+
+## Overview
+
+In this project we will perform some basic exploratory analyses on the ToothGrowth data. The data is set of 60 observations, length of odontoblasts (teeth) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1 and 2 mg) with each of two delivery methods (orange juice or ascorbic acid).
+
+Our goals are to:  
+1. load the ToothGrowth data and perform some basic exploratory data analyses  
+2. provide a basic summary of the data.  
+3. use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose.  
+4. state our conclusions.
+
+## Load Data
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+# load neccesary libraries
+library(ggplot2)
+library(datasets)
+
+# The Effect of Vitamin C on Tooth Growth in Guinea Pigs
+data(ToothGrowth)
+toothGrowth <- ToothGrowth 
+toothGrowth$dose <- factor(toothGrowth$dose) # convert to factor
+```
+
+## Basic Summary of the data
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+str(toothGrowth)
+summary(toothGrowth)
+head(toothGrowth)
+table(toothGrowth$supp, toothGrowth$dose)
+```
+
+Please see Appendix for plots of the relations between the features and the results of the experiments.
+
+As can be seen in those plots, there is a clear positive correlation between the
+tooth length and the dose levels of Vitamin C, for both delivery methods. Next we will analize the effect of the dosage and the supplement to support these claims with data.
+
+## Analysis
+
+Let's first split the data by supplement and dosage, and then build models from them.
+
+Tooth-length vs. supplement:
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+ToothGrowth.supp_OJ <- subset(ToothGrowth, ToothGrowth$supp == "OJ")
+fit_OJ <- lm(len ~ dose, data = ToothGrowth.supp_OJ)
+summary(fit_OJ)
+```
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+ToothGrowth.supp_VC <- subset(ToothGrowth, ToothGrowth$supp == "VC")
+fit_VC <- lm(len ~ dose, data = ToothGrowth.supp_VC)
+summary(fit_VC)
+```
+
+The R-square values are high and the p-values are low above, so models fit well, i.e. there is a correlation between the tooth increase and dosage increase.
+
+Now for supplement:
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+ToothGrowth.dose_05 <- subset(ToothGrowth, ToothGrowth$dose == "0.5")
+fit_dose_05 <- lm(len ~ supp -1, data = ToothGrowth.dose_05)
+summary(fit_dose_05)
+```
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+ToothGrowth.dose_1 <- subset(ToothGrowth, ToothGrowth$dose == "1")
+fit_dose_1 <- lm(len ~ supp -1, data = ToothGrowth.dose_1)
+summary(fit_dose_1)
+```
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+ToothGrowth.dose_2 <- subset(ToothGrowth, ToothGrowth$dose == "2")
+fit_dose_2 <- lm(len ~ supp -1, data = ToothGrowth.dose_2)
+summary(fit_dose_2)
+```
+
+The R-square values are high and the slopes tell us are low above, so models fit well, i.e. there is a correlation between the tooth increase and supplements. The Orange Juice has a higher coeffient at lower levels, but the coefficients (hence the effect) are equal for dose=2.
+
+Let's also check the supplement change with t-tests:
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE}
+testResults = list()
+
+tr <- t.test(len ~ dose, data=subset(ToothGrowth.supp_OJ, ToothGrowth.supp_OJ$dose != "1"), var.equal=TRUE)
+testResults <- rbind(testResults, list(test="len vs dose for supp=OJ", p_value=tr$p.value, Conf_int_low=tr$conf.int[1], Conf_int_high=tr$conf.int[2]))
+
+tr <- t.test(len ~ dose, data=subset(ToothGrowth.supp_VC, ToothGrowth.supp_VC$dose != "1"), var.equal=TRUE)
+testResults <- rbind(testResults, list(test="len vs dose for supp=VC", p_value=tr$p.value, Conf_int_low=tr$conf.int[1], Conf_int_high=tr$conf.int[2]))
+
+tr <- t.test(len ~ supp, data=ToothGrowth.dose_05, var.equal=TRUE)
+testResults <- rbind(testResults, list(test="len vs supp at dose=0.5", p_value=tr$p.value, Conf_int_low=tr$conf.int[1], Conf_int_high=tr$conf.int[2]))
+
+tr <- t.test(len ~ supp, data=ToothGrowth.dose_1, var.equal=TRUE)
+testResults <- rbind(testResults, list(test="len vs supp at dose=1", p_value=tr$p.value, Conf_int_low=tr$conf.int[1], Conf_int_high=tr$conf.int[2]))
+                     
+tr <- t.test(len ~ supp, data=ToothGrowth.dose_2, var.equal=TRUE)
+testResults <- rbind(testResults, list(test="len vs supp at dose=2", p_value=tr$p.value, Conf_int_low=tr$conf.int[1], Conf_int_high=tr$conf.int[2]))
+
+testResults
+```
+
+These results are all in line with the previous results.
+
+
+## Conclusions
+
+Assuming that the sample is a representative of the normally distributed population (*normality*) and the treatements have been applied randomly (*homogeneity of variance*) and exclusively (*independence*), we can make the following conclusions:
+
+Both the supplement and the dosage have a clear positive effect on the length of teeth of guinea pigs. Supplement type also makes a change, with Orange Juice having a greater influence at lower dosages (less than 2 mg to be precise).
+
+## Appendix
+
+```{r warning=FALSE, echo=FALSE, eval=TRUE, fig.height=4}
+ggplot(data=toothGrowth, aes(x=dose,y=len,fill=dose)) +
+  geom_boxplot() +
+  facet_grid(.~supp) +
+  guides(fill=guide_legend(title="Dose")) +
+  ggtitle("Tooth-length vs Dose, by Supplement") +
+  xlab("Dose in miligrams") +
+  ylab("Tooth-length") +
+  scale_fill_discrete(name="Experimental\nCondition",
+                         breaks=c("0.5", "1", "2"),
+                         labels=c("0.5 mg", "1 mg", "2 mg"))
+```
+```
+```
+```{r warning=FALSE, echo=FALSE, eval=TRUE, fig.height=4}
+ggplot(data=toothGrowth, aes(x=supp,y=len,fill=supp)) +
+  geom_boxplot() + 
+  facet_grid(.~dose) +
+  guides(fill=guide_legend(title="Supplement type")) +
+  ggtitle("Tooth-length vs Supplement, by Dose") +
+  xlab("Supplement") +
+  ylab("Tooth-length") +
+  scale_fill_discrete(name="Experimental\nCondition",
+                         breaks=c("OJ", "VC"),
+                         labels=c("Orange Juice", "Vitamin C"))
+```
+
+```{r warning=FALSE, echo=FALSE, eval=TRUE, fig.height=4}
+ggplot(data=toothGrowth, aes(x=supp,y=len,fill=supp)) +
+  theme(legend.position="none") + 
+  geom_boxplot() +
+  ggtitle("Tooth-length vs Supplement") +
+  xlab("Supplement") +
+  ylab("Tooth-length")
+```
+```
+```
+```{r warning=FALSE, echo=FALSE, eval=TRUE}
+ggplot(data=toothGrowth, aes(x=dose,y=len,fill=dose)) +
+  theme(legend.position="none") + 
+  geom_boxplot() +
+  ggtitle("Tooth-length vs Dose") +
+  xlab("Dose in miligrams") +
+  ylab("Tooth-length")
+```
+
